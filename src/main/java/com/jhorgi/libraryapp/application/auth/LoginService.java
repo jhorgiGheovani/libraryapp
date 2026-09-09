@@ -10,6 +10,8 @@ import com.jhorgi.libraryapp.domain.port.out.TokenPort;
 import com.jhorgi.libraryapp.domain.port.out.UserRepositoryPort;
 import org.springframework.stereotype.Service;
 
+import java.util.Locale;
+
 @Service
 public class LoginService implements LoginUseCase {
 
@@ -28,18 +30,28 @@ public class LoginService implements LoginUseCase {
 
     @Override
     public String login(String credential, String rawPassword) {
-        if (loginAttempts.isLocked(credential)) {
+        User user = users.findByUsernameOrEmail(credential).orElse(null);
+
+        //decide key apakah pakai id atau pakai cred
+        String lockoutKey = lockoutKey(user, credential);
+
+        if (loginAttempts.isLocked(lockoutKey)) {
             throw new AccountLockedException();
         }
 
-        User user = users.findByUsernameOrEmail(credential).orElse(null);
-
         if (user == null || !passwordHasher.matches(rawPassword, user.getHashedPassword())) {
-            loginAttempts.recordFailure(credential);
+            loginAttempts.recordFailure(lockoutKey);
             throw new BadCredentialsException();
         }
 
-        loginAttempts.reset(credential);
+        loginAttempts.reset(lockoutKey);
         return tokens.issue(user.getId(), user.getRole());
+    }
+
+    private static String lockoutKey(User user, String credential) {
+        if (user != null) {
+            return "user:" + user.getId();
+        }
+        return "cred:" + credential.trim().toLowerCase(Locale.ROOT);
     }
 }

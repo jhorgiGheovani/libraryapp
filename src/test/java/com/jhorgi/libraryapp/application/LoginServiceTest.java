@@ -86,6 +86,29 @@ class LoginServiceTest {
     }
 
     @Test
+    void lockOnUsernameAlsoBlocksLoginByEmail() {
+        for (int i = 0; i < MAX_ATTEMPTS; i++) {
+            assertThrows(BadCredentialsException.class,
+                    () -> service.login("alice", "wrong-password"));
+        }
+
+        assertThrows(AccountLockedException.class,
+                () -> service.login("alice@example.com", "password123"));
+    }
+
+    @Test
+    void cannotForgeLockOnAnotherAccountViaKeyCollision() {
+        // alice is user id 1. An attacker submitting the literal string "user:1"
+        // resolves to no user, so it is namespaced as "cred:user:1" — never the
+        // real "user:1" key. Locking the forged string must leave alice alone.
+        for (int i = 0; i <= MAX_ATTEMPTS; i++) {
+            assertThrows(RuntimeException.class,
+                    () -> service.login("user:1", "whatever"));
+        }
+        assertEquals("token-1-VIEWER", service.login("alice", "password123"));
+    }
+
+    @Test
     void correctPasswordWhileLockedStillRejected() {
         for (int i = 0; i < MAX_ATTEMPTS; i++) {
             assertThrows(RuntimeException.class,
