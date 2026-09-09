@@ -6,9 +6,9 @@ import java.util.Optional;
 
 public interface UserRepositoryPort {
 
-    Optional<User> findByEmail(String identifier);
+    Optional<User> findByUsernameOrEmail(String identifier);
 
-    boolean existsByEmail(String username, String email);
+    boolean existsByUsernameOrEmail(String username, String email);
 
     User save(User user);
 }

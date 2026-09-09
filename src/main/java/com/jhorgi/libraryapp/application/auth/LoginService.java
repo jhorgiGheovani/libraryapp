@@ -27,19 +27,19 @@ public class LoginService implements LoginUseCase {
     }
 
     @Override
-    public String login(String email, String rawPassword) {
-        if (loginAttempts.isLocked(email)) {
+    public String login(String credential, String rawPassword) {
+        if (loginAttempts.isLocked(credential)) {
             throw new AccountLockedException();
         }
 
-        User user = users.findByEmail(email).orElse(null);
+        User user = users.findByUsernameOrEmail(credential).orElse(null);
 
         if (user == null || !passwordHasher.matches(rawPassword, user.getHashedPassword())) {
-            loginAttempts.recordFailure(email);
+            loginAttempts.recordFailure(credential);
             throw new BadCredentialsException();
         }
 
-        loginAttempts.reset(email);
+        loginAttempts.reset(credential);
         return tokens.issue(user.getId(), user.getRole());
     }
 }
