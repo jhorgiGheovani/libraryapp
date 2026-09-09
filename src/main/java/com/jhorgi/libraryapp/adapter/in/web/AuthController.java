@@ -36,7 +36,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request) {
-        String token = loginUseCase.login(request.identifier(), request.password());
+        String token = loginUseCase.login(request.email(), request.password());
         return ResponseEntity.ok(ApiResponse.ok(TokenResponse.bearer(token)));
     }
 

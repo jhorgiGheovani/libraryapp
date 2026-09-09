@@ -21,7 +21,7 @@ public class RegisterService implements RegisterUseCase {
 
     @Override
     public User register(String username, String email, String password) {
-        if (users.existsByUsernameOrEmail(username, email)) {
+        if (users.existsByEmail(username, email)) {
             throw new DuplicateUserException("Username or email already taken");
         }
         String hashed = passwordHasher.hash(password);

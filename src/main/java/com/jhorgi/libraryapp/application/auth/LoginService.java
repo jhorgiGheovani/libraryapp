@@ -22,8 +22,8 @@ public class LoginService implements LoginUseCase {
     }
 
     @Override
-    public String login(String identifier, String rawPassword) {
-        User user = users.findByUsernameOrEmail(identifier)
+    public String login(String email, String rawPassword) {
+        User user = users.findByEmail(email)
                 .orElseThrow(BadCredentialsException::new);
 
         if (!passwordHasher.matches(rawPassword, user.getHashedPassword())) {

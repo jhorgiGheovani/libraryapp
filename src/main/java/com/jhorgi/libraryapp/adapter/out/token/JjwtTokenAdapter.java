@@ -5,10 +5,11 @@ import com.jhorgi.libraryapp.domain.model.TokenPayload;
 import com.jhorgi.libraryapp.domain.port.out.TokenPort;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
@@ -17,13 +18,13 @@ public class JjwtTokenAdapter implements TokenPort {
 
     private static final String ROLE_CLAIM = "role";
 
-    private final byte[] secret;
+    private final SecretKey key;
     private final long expirationMs;
 
     public JjwtTokenAdapter(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration-ms}") long expirationMs) {
-        this.secret = secret.getBytes(StandardCharsets.UTF_8);
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }
 
@@ -32,20 +33,21 @@ public class JjwtTokenAdapter implements TokenPort {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
         return Jwts.builder()
-                .setSubject(String.valueOf(userId))
+                .subject(String.valueOf(userId))
                 .claim(ROLE_CLAIM, role.name())
-                .setIssuedAt(now)
-                .setExpiration(expiry)
-                .signWith(SignatureAlgorithm.HS256, secret)
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(key)
                 .compact();
     }
 
     @Override
     public TokenPayload verify(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(secret)
-                .parseClaimsJws(token)
-                .getBody();
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
         Long userId = Long.valueOf(claims.getSubject());
         Role role = Role.valueOf(claims.get(ROLE_CLAIM, String.class));
         return new TokenPayload(userId, role);

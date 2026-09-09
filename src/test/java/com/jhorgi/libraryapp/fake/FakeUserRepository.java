@@ -14,14 +14,14 @@ public class FakeUserRepository implements UserRepositoryPort {
     private final AtomicLong sequence = new AtomicLong(0);
 
     @Override
-    public Optional<User> findByUsernameOrEmail(String identifier) {
+    public Optional<User> findByEmail(String identifier) {
         return byId.values().stream()
                 .filter(u -> u.getUsername().equals(identifier) || u.getEmail().equals(identifier))
                 .findFirst();
     }
 
     @Override
-    public boolean existsByUsernameOrEmail(String username, String email) {
+    public boolean existsByEmail(String username, String email) {
         return byId.values().stream()
                 .anyMatch(u -> u.getUsername().equals(username) || u.getEmail().equals(email));
     }
