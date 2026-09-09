@@ -3,56 +3,101 @@ package com.jhorgi.libraryapp.application;
 import com.jhorgi.libraryapp.application.auth.LoginService;
 import com.jhorgi.libraryapp.domain.exception.AccountLockedException;
 import com.jhorgi.libraryapp.domain.exception.BadCredentialsException;
+import com.jhorgi.libraryapp.domain.model.MfaChallenge;
+import com.jhorgi.libraryapp.domain.model.OtpChallenge;
 import com.jhorgi.libraryapp.domain.model.Role;
 import com.jhorgi.libraryapp.domain.model.User;
+import com.jhorgi.libraryapp.fake.FakeEmailSender;
 import com.jhorgi.libraryapp.fake.FakeLoginAttemptAdapter;
+import com.jhorgi.libraryapp.fake.FakeOtpGenerator;
+import com.jhorgi.libraryapp.fake.FakeOtpStore;
 import com.jhorgi.libraryapp.fake.FakePasswordHasher;
-import com.jhorgi.libraryapp.fake.FakeTokenAdapter;
 import com.jhorgi.libraryapp.fake.FakeUserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LoginServiceTest {
 
     private static final int MAX_ATTEMPTS = 5;
+    private static final long OTP_TTL_MS = 300_000L;
 
     private FakeUserRepository users;
     private FakePasswordHasher hasher;
+    private FakeOtpStore otpStore;
+    private FakeEmailSender emailSender;
     private LoginService service;
 
     @BeforeEach
     void setUp() {
         users = new FakeUserRepository();
         hasher = new FakePasswordHasher();
-        service = new LoginService(users, hasher, new FakeTokenAdapter(),
-                new FakeLoginAttemptAdapter(MAX_ATTEMPTS));
+        otpStore = new FakeOtpStore();
+        emailSender = new FakeEmailSender();
+        service = new LoginService(users, hasher, new FakeLoginAttemptAdapter(MAX_ATTEMPTS),
+                otpStore, new FakeOtpGenerator(), emailSender, OTP_TTL_MS);
         users.save(User.newUser("Alice Wonderland", "alice", "alice@example.com",
                 hasher.hash("password123"), Role.VIEWER));
     }
 
     @Test
-    void returnsTokenOnValidCredentials() {
-        String token = service.login("alice", "password123");
+    void returnsMfaChallengeOnValidCredentials() {
+        MfaChallenge challenge = service.login("alice", "password123");
 
-        assertNotNull(token);
-        assertEquals("token-1-VIEWER", token);
+        assertNotNull(challenge.challengeId());
+        assertEquals(OTP_TTL_MS / 1000, challenge.expiresInSeconds());
+    }
+
+    @Test
+    void emailsTheOtpToTheAccountOwner() {
+        service.login("alice", "password123");
+
+        assertEquals(1, emailSender.sent().size());
+        assertEquals("alice@example.com", emailSender.last().toEmail());
+        assertEquals(FakeOtpGenerator.CODE, emailSender.last().code());
+    }
+
+    @Test
+    void storesTheOtpHashedNotInClear() {
+        // A dump of the store must not hand out working codes.
+        MfaChallenge challenge = service.login("alice", "password123");
+
+        OtpChallenge stored = otpStore.find(challenge.challengeId()).orElseThrow();
+        assertNotEquals(FakeOtpGenerator.CODE, stored.otpHash());
+        assertTrue(hasher.matches(FakeOtpGenerator.CODE, stored.otpHash()));
+        assertEquals(Role.VIEWER, stored.role());
+    }
+
+    @Test
+    void issuesAFreshChallengeIdEachLogin() {
+        String first = service.login("alice", "password123").challengeId();
+        String second = service.login("alice", "password123").challengeId();
+
+        assertNotEquals(first, second);
     }
 
     @Test
     void acceptsEmailAsIdentifier() {
-        String token = service.login("alice@example.com", "password123");
-
-        assertEquals("token-1-VIEWER", token);
+        assertNotNull(service.login("alice@example.com", "password123").challengeId());
     }
 
     @Test
     void rejectsWrongPassword() {
         assertThrows(BadCredentialsException.class,
                 () -> service.login("alice", "wrong-password"));
+    }
+
+    @Test
+    void sendsNoOtpWhenThePasswordIsWrong() {
+        assertThrows(BadCredentialsException.class,
+                () -> service.login("alice", "wrong-password"));
+
+        assertTrue(emailSender.sent().isEmpty());
     }
 
     @Test
@@ -105,7 +150,7 @@ class LoginServiceTest {
             assertThrows(RuntimeException.class,
                     () -> service.login("user:1", "whatever"));
         }
-        assertEquals("token-1-VIEWER", service.login("alice", "password123"));
+        assertNotNull(service.login("alice", "password123").challengeId());
     }
 
     @Test

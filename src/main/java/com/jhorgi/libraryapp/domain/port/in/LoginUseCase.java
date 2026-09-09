@@ -1,6 +1,8 @@
 package com.jhorgi.libraryapp.domain.port.in;
 
+import com.jhorgi.libraryapp.domain.model.MfaChallenge;
+
 public interface LoginUseCase {
 
-    String login(String identifier, String rawPassword);
+    MfaChallenge login(String identifier, String rawPassword);
 }
