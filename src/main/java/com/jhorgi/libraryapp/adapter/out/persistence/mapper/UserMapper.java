@@ -11,6 +11,7 @@ public final class UserMapper {
     public static User toDomain(UserEntity entity) {
         return new User(
                 entity.getId(),
+                entity.getFullname(),
                 entity.getUsername(),
                 entity.getEmail(),
                 entity.getHashedPassword(),
@@ -21,6 +22,7 @@ public final class UserMapper {
     public static UserEntity toEntity(User user) {
         return new UserEntity(
                 user.getId(),
+                user.getFullname(),
                 user.getUsername(),
                 user.getEmail(),
                 user.getHashedPassword(),

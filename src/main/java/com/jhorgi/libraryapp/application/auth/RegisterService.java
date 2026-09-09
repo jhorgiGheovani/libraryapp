@@ -20,12 +20,12 @@ public class RegisterService implements RegisterUseCase {
     }
 
     @Override
-    public User register(String username, String email, String password) {
+    public User register(String fullname, String username, String email, String password) {
         if (users.existsByEmail(username, email)) {
             throw new DuplicateUserException("Username or email already taken");
         }
         String hashed = passwordHasher.hash(password);
-        User toSave = User.newUser(username, email, hashed, Role.VIEWER);
+        User toSave = User.newUser(fullname, username, email, hashed, Role.VIEWER);
         return users.save(toSave);
     }
 }

@@ -4,5 +4,5 @@ import com.jhorgi.libraryapp.domain.model.User;
 
 public interface RegisterUseCase {
 
-    User register(String username, String email, String password);
+    User register(String fullname, String username, String email, String password);
 }

@@ -3,25 +3,31 @@ package com.jhorgi.libraryapp.domain.model;
 public class User {
 
     private final Long id;
+    private final String fullname;
     private final String username;
     private final String email;
     private final String hashedPassword;
     private final Role role;
 
-    public User(Long id, String username, String email, String hashedPassword, Role role) {
+    public User(Long id, String fullname, String username, String email, String hashedPassword, Role role) {
         this.id = id;
+        this.fullname = fullname;
         this.username = username;
         this.email = email;
         this.hashedPassword = hashedPassword;
         this.role = role;
     }
 
-    public static User newUser(String username, String email, String hashedPassword, Role role) {
-        return new User(null, username, email, hashedPassword, role);
+    public static User newUser(String fullname, String username, String email, String hashedPassword, Role role) {
+        return new User(null, fullname, username, email, hashedPassword, role);
     }
 
     public Long getId() {
         return id;
+    }
+
+    public String getFullname() {
+        return fullname;
     }
 
     public String getUsername() {

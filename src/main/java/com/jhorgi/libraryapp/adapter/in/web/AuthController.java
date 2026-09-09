@@ -29,17 +29,19 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<RegisterResult>> register(@Valid @RequestBody RegisterRequest request) {
-        User user = registerUseCase.register(request.username(), request.email(), request.password());
-        RegisterResult result = new RegisterResult(user.getId(), user.getUsername(), user.getEmail());
+        User user = registerUseCase.register(
+                request.fullname(), request.username(), request.email(), request.password());
+        RegisterResult result =
+                new RegisterResult(user.getId(), user.getFullname(), user.getUsername(), user.getEmail());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(result));
     }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request) {
-        String token = loginUseCase.login(request.email(), request.password());
+        String token = loginUseCase.login(request.credential(), request.password());
         return ResponseEntity.ok(ApiResponse.ok(TokenResponse.bearer(token)));
     }
 
-    public record RegisterResult(Long id, String username, String email) {
+    public record RegisterResult(Long id, String fullname, String username, String email) {
     }
 }

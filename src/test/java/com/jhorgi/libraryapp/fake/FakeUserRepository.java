@@ -29,7 +29,8 @@ public class FakeUserRepository implements UserRepositoryPort {
     @Override
     public User save(User user) {
         Long id = user.getId() != null ? user.getId() : sequence.incrementAndGet();
-        User stored = new User(id, user.getUsername(), user.getEmail(), user.getHashedPassword(), user.getRole());
+        User stored = new User(id, user.getFullname(), user.getUsername(), user.getEmail(),
+                user.getHashedPassword(), user.getRole());
         byId.put(id, stored);
         return stored;
     }

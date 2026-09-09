@@ -25,6 +25,9 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    private String fullname;
+
     @Column(nullable = false, unique = true)
     private String username;
 
@@ -41,8 +44,9 @@ public class UserEntity {
     protected UserEntity() {
     }
 
-    public UserEntity(Long id, String username, String email, String hashedPassword, Role role) {
+    public UserEntity(Long id, String fullname, String username, String email, String hashedPassword, Role role) {
         this.id = id;
+        this.fullname = fullname;
         this.username = username;
         this.email = email;
         this.hashedPassword = hashedPassword;
@@ -51,6 +55,10 @@ public class UserEntity {
 
     public Long getId() {
         return id;
+    }
+
+    public String getFullname() {
+        return fullname;
     }
 
     public String getUsername() {

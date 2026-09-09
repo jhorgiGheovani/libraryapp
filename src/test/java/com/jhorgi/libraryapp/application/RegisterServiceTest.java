@@ -27,9 +27,10 @@ class RegisterServiceTest {
 
     @Test
     void registersNewUserWithViewerRoleAndHashedPassword() {
-        User user = service.register("alice", "alice@example.com", "password123");
+        User user = service.register("Alice Wonderland", "alice", "alice@example.com", "password123");
 
         assertNotNull(user.getId());
+        assertEquals("Alice Wonderland", user.getFullname());
         assertEquals("alice", user.getUsername());
         assertEquals(Role.VIEWER, user.getRole());
         assertNotEquals("password123", user.getHashedPassword());
@@ -38,11 +39,11 @@ class RegisterServiceTest {
 
     @Test
     void rejectsDuplicateUsernameOrEmail() {
-        service.register("alice", "alice@example.com", "password123");
+        service.register("Alice Wonderland", "alice", "alice@example.com", "password123");
 
         assertThrows(DuplicateUserException.class,
-                () -> service.register("alice", "other@example.com", "password123"));
+                () -> service.register("Alice Two", "alice", "other@example.com", "password123"));
         assertThrows(DuplicateUserException.class,
-                () -> service.register("bob", "alice@example.com", "password123"));
+                () -> service.register("Bob Builder", "bob", "alice@example.com", "password123"));
     }
 }

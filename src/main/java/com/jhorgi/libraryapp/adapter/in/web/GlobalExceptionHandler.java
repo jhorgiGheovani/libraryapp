@@ -1,6 +1,7 @@
 package com.jhorgi.libraryapp.adapter.in.web;
 
 import com.jhorgi.libraryapp.adapter.in.web.dto.response.ApiResponse;
+import com.jhorgi.libraryapp.domain.exception.AccountLockedException;
 import com.jhorgi.libraryapp.domain.exception.BadCredentialsException;
 import com.jhorgi.libraryapp.domain.exception.DuplicateUserException;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(ex.getMessage()));
+    }
+
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccountLocked(AccountLockedException ex) {
+        return ResponseEntity.status(HttpStatus.LOCKED).body(ApiResponse.fail(ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
