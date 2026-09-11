@@ -6,7 +6,9 @@ import com.jhorgi.libraryapp.domain.exception.ArticleAccessDeniedException;
 import com.jhorgi.libraryapp.domain.exception.ArticleNotFoundException;
 import com.jhorgi.libraryapp.domain.exception.BadCredentialsException;
 import com.jhorgi.libraryapp.domain.exception.DuplicateUserException;
+import com.jhorgi.libraryapp.domain.exception.ForbiddenOperationException;
 import com.jhorgi.libraryapp.domain.exception.InvalidOtpException;
+import com.jhorgi.libraryapp.domain.exception.UserNotFoundException;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,6 +50,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ArticleAccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleArticleAccessDenied(ArticleAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(ex.getMessage()));
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUserNotFound(UserNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ForbiddenOperationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleForbiddenOperation(ForbiddenOperationException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(ex.getMessage()));
     }
 

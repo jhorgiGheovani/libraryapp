@@ -3,7 +3,9 @@ package com.jhorgi.libraryapp.application;
 import com.jhorgi.libraryapp.application.article.ArticleCommandService;
 import com.jhorgi.libraryapp.domain.exception.ArticleAccessDeniedException;
 import com.jhorgi.libraryapp.domain.exception.ArticleNotFoundException;
+import com.jhorgi.libraryapp.domain.model.Actor;
 import com.jhorgi.libraryapp.domain.model.Article;
+import com.jhorgi.libraryapp.domain.model.Role;
 import com.jhorgi.libraryapp.domain.model.Visibility;
 import com.jhorgi.libraryapp.domain.port.in.ArticleCommandUseCase.CreateArticleCommand;
 import com.jhorgi.libraryapp.domain.port.in.ArticleCommandUseCase.UpdateArticleCommand;
@@ -18,8 +20,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ArticleCommandServiceTest {
 
-    private static final Long AUTHOR = 1L;
-    private static final Long STRANGER = 2L;
+    /**
+     * Slice-4 ownership rules are role-independent, so they are pinned with the
+     * narrowest roles that still hold the permission under test. The stranger is
+     * deliberately a CONTRIBUTOR: without ARTICLE_READ_ALL the 403-vs-404 split
+     * is the one slice 4 proved. The role matrix itself lives in
+     * {@link ArticleRbacMatrixTest}.
+     */
+    private static final Actor AUTHOR = new Actor(1L, Role.EDITOR);
+    private static final Actor STRANGER = new Actor(2L, Role.CONTRIBUTOR);
 
     private FakeArticleRepository articles;
     private ArticleCommandService service;
@@ -31,7 +40,7 @@ class ArticleCommandServiceTest {
     }
 
     private Article existing(Visibility visibility) {
-        return articles.save(Article.newArticle("Title", "Content", AUTHOR, visibility));
+        return articles.save(Article.newArticle("Title", "Content", AUTHOR.id(), visibility));
     }
 
     @Test
@@ -42,7 +51,7 @@ class ArticleCommandServiceTest {
         assertNotNull(created.id());
         assertNotNull(created.createdAt());
         assertNotNull(created.updatedAt());
-        assertEquals(AUTHOR, created.authorId());
+        assertEquals(AUTHOR.id(), created.authorId());
     }
 
     @Test
@@ -73,7 +82,7 @@ class ArticleCommandServiceTest {
         Article updated = service.update(new UpdateArticleCommand(
                 article.id(), "New title", "New content", null, AUTHOR));
 
-        assertEquals(AUTHOR, updated.authorId());
+        assertEquals(AUTHOR.id(), updated.authorId());
         assertEquals(article.createdAt(), updated.createdAt());
     }
 

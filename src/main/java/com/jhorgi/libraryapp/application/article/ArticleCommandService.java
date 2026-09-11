@@ -1,5 +1,7 @@
 package com.jhorgi.libraryapp.application.article;
 
+import com.jhorgi.libraryapp.application.policy.ArticlePolicy;
+import com.jhorgi.libraryapp.domain.model.Actor;
 import com.jhorgi.libraryapp.domain.model.Article;
 import com.jhorgi.libraryapp.domain.model.Visibility;
 import com.jhorgi.libraryapp.domain.port.in.ArticleCommandUseCase;
@@ -19,28 +21,33 @@ public class ArticleCommandService implements ArticleCommandUseCase {
 
     @Override
     public Article create(CreateArticleCommand command) {
+        // Also gated declaratively on the controller. Repeated here so the rule
+        // survives any future caller that does not go through the web layer.
+        ArticlePolicy.requireCanCreate(command.author());
 
         Visibility visibility = command.visibility() != null ? command.visibility() : DEFAULT_VISIBILITY;
         return articles.save(Article.newArticle(
-                command.title(), command.content(), command.authorId(), visibility));
+                command.title(), command.content(), command.author().id(), visibility));
     }
 
     @Override
     public Article update(UpdateArticleCommand command) {
-        Article article = requireOwned(command.articleId(), command.requesterId());
+        Actor requester = command.requester();
+        Article article = readable(command.articleId(), requester);
+        ArticlePolicy.requireCanUpdate(article, requester);
+
         Visibility visibility = command.visibility() != null ? command.visibility() : article.visibility();
         return articles.save(article.withRevision(command.title(), command.content(), visibility));
     }
 
     @Override
-    public void delete(Long articleId, Long requesterId) {
-        requireOwned(articleId, requesterId);
+    public void delete(Long articleId, Actor requester) {
+        Article article = readable(articleId, requester);
+        ArticlePolicy.requireCanDelete(article, requester);
         articles.deleteById(articleId);
     }
 
-    private Article requireOwned(Long articleId, Long requesterId) {
-        Article article = ArticleAccess.readable(articles.findById(articleId), requesterId);
-        ArticleAccess.requireOwner(article, requesterId);
-        return article;
+    private Article readable(Long articleId, Actor requester) {
+        return ArticlePolicy.readable(articles.findById(articleId), requester);
     }
 }

@@ -2,8 +2,10 @@ package com.jhorgi.libraryapp.application;
 
 import com.jhorgi.libraryapp.application.article.ArticleQueryService;
 import com.jhorgi.libraryapp.domain.exception.ArticleNotFoundException;
+import com.jhorgi.libraryapp.domain.model.Actor;
 import com.jhorgi.libraryapp.domain.model.Article;
 import com.jhorgi.libraryapp.domain.model.PagedResult;
+import com.jhorgi.libraryapp.domain.model.Role;
 import com.jhorgi.libraryapp.domain.model.Visibility;
 import com.jhorgi.libraryapp.fake.FakeArticleRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,8 +19,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ArticleQueryServiceTest {
 
-    private static final Long ALICE = 1L;
-    private static final Long BOB = 2L;
+    // Both CONTRIBUTOR: they can write, but neither holds ARTICLE_READ_ALL, so
+    // these pin the ownership-based visibility rules from slice 4. The role-aware
+    // widening for EDITOR and SUPER_ADMIN is in {@link ArticleRbacMatrixTest}.
+    private static final Actor ALICE = new Actor(1L, Role.CONTRIBUTOR);
+    private static final Actor BOB = new Actor(2L, Role.CONTRIBUTOR);
 
     private FakeArticleRepository articles;
     private ArticleQueryService service;
@@ -29,8 +34,8 @@ class ArticleQueryServiceTest {
         service = new ArticleQueryService(articles);
     }
 
-    private Article save(String title, Long authorId, Visibility visibility) {
-        return articles.save(Article.newArticle(title, "Content", authorId, visibility));
+    private Article save(String title, Actor author, Visibility visibility) {
+        return articles.save(Article.newArticle(title, "Content", author.id(), visibility));
     }
 
     @Test

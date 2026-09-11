@@ -1,7 +1,9 @@
 package com.jhorgi.libraryapp.fake;
 
+import com.jhorgi.libraryapp.domain.model.Actor;
 import com.jhorgi.libraryapp.domain.model.Article;
 import com.jhorgi.libraryapp.domain.model.PagedResult;
+import com.jhorgi.libraryapp.domain.model.Permission;
 import com.jhorgi.libraryapp.domain.model.Visibility;
 import com.jhorgi.libraryapp.domain.port.out.ArticleRepositoryPort;
 
@@ -39,9 +41,11 @@ public class FakeArticleRepository implements ArticleRepositoryPort {
     }
 
     @Override
-    public PagedResult<Article> findVisibleTo(Long viewerId, int page, int size) {
+    public PagedResult<Article> findVisibleTo(Actor viewer, int page, int size) {
         List<Article> visible = byId.values().stream()
-                .filter(a -> a.visibility() == Visibility.PUBLIC || a.isOwnedBy(viewerId))
+                .filter(a -> a.visibility() == Visibility.PUBLIC
+                        || viewer.owns(a)
+                        || viewer.can(Permission.ARTICLE_READ_ALL))
                 .sorted(Comparator.comparing(Article::createdAt).reversed()
                         .thenComparing(Comparator.comparing(Article::id).reversed()))
                 .toList();
@@ -54,5 +58,10 @@ public class FakeArticleRepository implements ArticleRepositoryPort {
     @Override
     public void deleteById(Long articleId) {
         byId.remove(articleId);
+    }
+
+    @Override
+    public void deleteByAuthorId(Long authorId) {
+        byId.values().removeIf(a -> a.isOwnedBy(authorId));
     }
 }

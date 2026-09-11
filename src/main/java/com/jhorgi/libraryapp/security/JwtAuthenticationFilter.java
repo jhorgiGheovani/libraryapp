@@ -1,5 +1,6 @@
 package com.jhorgi.libraryapp.security;
 
+import com.jhorgi.libraryapp.domain.model.Role;
 import com.jhorgi.libraryapp.domain.model.TokenPayload;
 import com.jhorgi.libraryapp.domain.port.out.TokenPort;
 import jakarta.servlet.FilterChain;
@@ -10,12 +11,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -45,9 +48,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             TokenPayload payload = tokens.verify(header.substring(PREFIX.length()).trim());
             AuthenticatedUser principal = new AuthenticatedUser(payload.userId(), payload.role());
-            var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + payload.role().name()));
             SecurityContextHolder.getContext().setAuthentication(
-                    new UsernamePasswordAuthenticationToken(principal, null, authorities));
+                    new UsernamePasswordAuthenticationToken(principal, null, authoritiesOf(payload.role())));
         } catch (RuntimeException ex) {
 
             SecurityContextHolder.clearContext();
@@ -55,5 +57,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Publishes the role itself plus every permission it carries, so
+     * {@code @PreAuthorize} reads from the same matrix the domain policy does
+     * rather than restating it as a list of role names.
+     */
+    private static List<GrantedAuthority> authoritiesOf(Role role) {
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        role.permissions().forEach(p -> authorities.add(new SimpleGrantedAuthority(p.name())));
+        return authorities;
     }
 }

@@ -15,6 +15,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,12 +39,13 @@ public class ArticleController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('ARTICLE_CREATE')")
     public ResponseEntity<ApiResponse<ArticleResponse>> create(
             @Valid @RequestBody CreateArticleRequest request,
             @AuthenticationPrincipal AuthenticatedUser caller) {
         // The author is taken from the token, never from the payload.
         Article created = commands.create(new ArticleCommandUseCase.CreateArticleCommand(
-                request.title(), request.content(), request.visibility(), caller.id()));
+                request.title(), request.content(), request.visibility(), caller.actor()));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(ArticleResponse.from(created)));
     }
@@ -53,7 +55,7 @@ public class ArticleController {
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             @AuthenticationPrincipal AuthenticatedUser caller) {
-        PagedResult<Article> result = queries.list(caller.id(), page, size);
+        PagedResult<Article> result = queries.list(caller.actor(), page, size);
         return ResponseEntity.ok(ApiResponse.ok(PageResponse.from(result, ArticleResponse::from)));
     }
 
@@ -61,25 +63,30 @@ public class ArticleController {
     public ResponseEntity<ApiResponse<ArticleResponse>> getById(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUser caller) {
-        Article article = queries.getById(id, caller.id());
+        Article article = queries.getById(id, caller.actor());
         return ResponseEntity.ok(ApiResponse.ok(ArticleResponse.from(article)));
     }
 
+    // The role gate is declarative; ownership needs the loaded article and stays
+    // in ArticlePolicy. A role-only denial leaks nothing about the id, so
+    // answering 403 here rather than 404 is not an existence oracle.
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ARTICLE_UPDATE_OWN', 'ARTICLE_WRITE_ANY')")
     public ResponseEntity<ApiResponse<ArticleResponse>> update(
             @PathVariable Long id,
             @Valid @RequestBody UpdateArticleRequest request,
             @AuthenticationPrincipal AuthenticatedUser caller) {
         Article updated = commands.update(new ArticleCommandUseCase.UpdateArticleCommand(
-                id, request.title(), request.content(), request.visibility(), caller.id()));
+                id, request.title(), request.content(), request.visibility(), caller.actor()));
         return ResponseEntity.ok(ApiResponse.ok(ArticleResponse.from(updated)));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ARTICLE_DELETE_OWN', 'ARTICLE_WRITE_ANY')")
     public ResponseEntity<Void> delete(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUser caller) {
-        commands.delete(id, caller.id());
+        commands.delete(id, caller.actor());
         return ResponseEntity.noContent().build();
     }
 }

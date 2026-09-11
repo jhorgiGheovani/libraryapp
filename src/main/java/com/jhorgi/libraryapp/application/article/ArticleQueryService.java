@@ -1,5 +1,7 @@
 package com.jhorgi.libraryapp.application.article;
 
+import com.jhorgi.libraryapp.application.policy.ArticlePolicy;
+import com.jhorgi.libraryapp.domain.model.Actor;
 import com.jhorgi.libraryapp.domain.model.Article;
 import com.jhorgi.libraryapp.domain.model.PagedResult;
 import com.jhorgi.libraryapp.domain.port.in.ArticleQueryUseCase;
@@ -16,12 +18,12 @@ public class ArticleQueryService implements ArticleQueryUseCase {
     }
 
     @Override
-    public Article getById(Long articleId, Long requesterId) {
-        return ArticleAccess.readable(articles.findById(articleId), requesterId);
+    public Article getById(Long articleId, Actor requester) {
+        return ArticlePolicy.readable(articles.findById(articleId), requester);
     }
 
     @Override
-    public PagedResult<Article> list(Long requesterId, int page, int size) {
-        return articles.findVisibleTo(requesterId, page, size);
+    public PagedResult<Article> list(Actor requester, int page, int size) {
+        return articles.findVisibleTo(requester, page, size);
     }
 }
