@@ -26,10 +26,10 @@ public interface UserManagementUseCase {
 
 
     record CreateUserCommand(String fullname, String username, String email, String password,
-                             Role role, Actor requester) {
+                             Role role, Actor requester) implements AuditableCommand {
     }
 
     record UpdateUserCommand(Long userId, String fullname, String username, String email,
-                             String password, Actor requester) {
+                             String password, Actor requester) implements AuditableCommand {
     }
 }

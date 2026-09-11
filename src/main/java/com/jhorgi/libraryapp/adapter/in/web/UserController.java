@@ -10,6 +10,7 @@ import com.jhorgi.libraryapp.domain.model.PagedResult;
 import com.jhorgi.libraryapp.domain.model.User;
 import com.jhorgi.libraryapp.domain.port.in.UserManagementUseCase;
 import com.jhorgi.libraryapp.security.AuthenticatedUser;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -36,6 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/users")
 @PreAuthorize("hasAuthority('USER_MANAGE')")
+@Tag(name = "Users", description = "Account administration. SUPER_ADMIN only")
 public class UserController {
 
     private final UserManagementUseCase users;

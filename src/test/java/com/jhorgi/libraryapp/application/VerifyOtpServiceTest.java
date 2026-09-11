@@ -3,9 +3,14 @@ package com.jhorgi.libraryapp.application;
 import com.jhorgi.libraryapp.application.auth.LoginService;
 import com.jhorgi.libraryapp.application.auth.VerifyOtpService;
 import com.jhorgi.libraryapp.domain.exception.InvalidOtpException;
+import com.jhorgi.libraryapp.domain.model.AuditAction;
+import com.jhorgi.libraryapp.domain.model.AuditOutcome;
+import com.jhorgi.libraryapp.domain.model.AuditRecord;
+import com.jhorgi.libraryapp.domain.model.AuditTargetType;
 import com.jhorgi.libraryapp.domain.model.MfaChallenge;
 import com.jhorgi.libraryapp.domain.model.Role;
 import com.jhorgi.libraryapp.domain.model.User;
+import com.jhorgi.libraryapp.fake.FakeAuditTrail;
 import com.jhorgi.libraryapp.fake.FakeEmailSender;
 import com.jhorgi.libraryapp.fake.FakeLoginAttemptAdapter;
 import com.jhorgi.libraryapp.fake.FakeOtpGenerator;
@@ -16,7 +21,11 @@ import com.jhorgi.libraryapp.fake.FakeUserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -28,6 +37,7 @@ class VerifyOtpServiceTest {
     private static final String WRONG_CODE = "000000";
 
     private FakeOtpStore otpStore;
+    private FakeAuditTrail auditTrail;
     private LoginService loginService;
     private VerifyOtpService service;
 
@@ -36,9 +46,11 @@ class VerifyOtpServiceTest {
         FakeUserRepository users = new FakeUserRepository();
         FakePasswordHasher hasher = new FakePasswordHasher();
         otpStore = new FakeOtpStore();
+        auditTrail = new FakeAuditTrail();
         loginService = new LoginService(users, hasher, new FakeLoginAttemptAdapter(5),
-                otpStore, new FakeOtpGenerator(), new FakeEmailSender(), 300_000L);
-        service = new VerifyOtpService(otpStore, hasher, new FakeTokenAdapter(), MAX_OTP_ATTEMPTS);
+                otpStore, new FakeOtpGenerator(), new FakeEmailSender(), auditTrail, 300_000L);
+        service = new VerifyOtpService(otpStore, hasher, new FakeTokenAdapter(), auditTrail,
+                MAX_OTP_ATTEMPTS);
 
         users.save(User.newUser("Alice Wonderland", "alice", "alice@example.com",
                 hasher.hash("password123"), Role.VIEWER));
@@ -46,6 +58,11 @@ class VerifyOtpServiceTest {
 
     private String challengeId() {
         return loginService.login("alice", "password123").challengeId();
+    }
+
+    private AuditRecord lastVerifyRecord() {
+        List<AuditRecord> verifies = auditTrail.recordsOf(AuditAction.OTP_VERIFY);
+        return verifies.get(verifies.size() - 1);
     }
 
     @Test
@@ -115,4 +132,50 @@ class VerifyOtpServiceTest {
 
         assertEquals("token-1-VIEWER", service.verify(second, CODE));
     }
+
+    // ----- audit trail (slice 6) -----
+
+    @Test
+    void issuingATokenIsRecordedAgainstTheUserTheChallengeNames() {
+        service.verify(challengeId(), CODE);
+
+        AuditRecord record = lastVerifyRecord();
+        assertEquals(AuditOutcome.SUCCESS, record.outcome());
+        assertEquals(AuditTargetType.AUTH, record.targetType());
+        // The identity comes from the challenge, not from the arguments — which is
+        // exactly why this is not audited by @Auditable.
+        assertNotNull(record.actorId());
+        assertEquals(Role.VIEWER, record.actorRole());
+    }
+
+    @Test
+    void aWrongCodeIsRecordedAgainstTheAccountItWasAimedAt() {
+        assertThrows(InvalidOtpException.class, () -> service.verify(challengeId(), WRONG_CODE));
+
+        AuditRecord record = lastVerifyRecord();
+        assertEquals(AuditOutcome.FAILURE, record.outcome());
+        assertEquals("WrongCode", record.detail());
+        assertNotNull(record.actorId());
+    }
+
+    @Test
+    void burningTheChallengeIsDistinguishableFromAnOrdinaryWrongCode() {
+        String id = challengeId();
+        for (int i = 0; i < MAX_OTP_ATTEMPTS; i++) {
+            assertThrows(InvalidOtpException.class, () -> service.verify(id, WRONG_CODE));
+        }
+
+        assertEquals("WrongCodeChallengeBurned", lastVerifyRecord().detail());
+    }
+
+    @Test
+    void anInventedChallengeIdIsRecordedAnonymously() {
+        assertThrows(InvalidOtpException.class, () -> service.verify("not-a-challenge", CODE));
+
+        AuditRecord record = lastVerifyRecord();
+        assertEquals(AuditOutcome.FAILURE, record.outcome());
+        assertEquals("UnknownChallenge", record.detail());
+        assertNull(record.actorId());
+    }
+
 }

@@ -1,8 +1,11 @@
 package com.jhorgi.libraryapp.application.article;
 
 import com.jhorgi.libraryapp.application.policy.ArticlePolicy;
+import com.jhorgi.libraryapp.audit.Auditable;
 import com.jhorgi.libraryapp.domain.model.Actor;
 import com.jhorgi.libraryapp.domain.model.Article;
+import com.jhorgi.libraryapp.domain.model.AuditAction;
+import com.jhorgi.libraryapp.domain.model.AuditTargetType;
 import com.jhorgi.libraryapp.domain.model.Visibility;
 import com.jhorgi.libraryapp.domain.port.in.ArticleCommandUseCase;
 import com.jhorgi.libraryapp.domain.port.out.ArticleRepositoryPort;
@@ -20,9 +23,8 @@ public class ArticleCommandService implements ArticleCommandUseCase {
     }
 
     @Override
+    @Auditable(action = AuditAction.ARTICLE_CREATE, target = AuditTargetType.ARTICLE)
     public Article create(CreateArticleCommand command) {
-        // Also gated declaratively on the controller. Repeated here so the rule
-        // survives any future caller that does not go through the web layer.
         ArticlePolicy.requireCanCreate(command.author());
 
         Visibility visibility = command.visibility() != null ? command.visibility() : DEFAULT_VISIBILITY;
@@ -31,6 +33,7 @@ public class ArticleCommandService implements ArticleCommandUseCase {
     }
 
     @Override
+    @Auditable(action = AuditAction.ARTICLE_UPDATE, target = AuditTargetType.ARTICLE)
     public Article update(UpdateArticleCommand command) {
         Actor requester = command.requester();
         Article article = readable(command.articleId(), requester);
@@ -41,6 +44,7 @@ public class ArticleCommandService implements ArticleCommandUseCase {
     }
 
     @Override
+    @Auditable(action = AuditAction.ARTICLE_DELETE, target = AuditTargetType.ARTICLE)
     public void delete(Long articleId, Actor requester) {
         Article article = readable(articleId, requester);
         ArticlePolicy.requireCanDelete(article, requester);

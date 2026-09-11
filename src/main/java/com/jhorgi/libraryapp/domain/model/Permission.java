@@ -18,5 +18,11 @@ public enum Permission {
     ARTICLE_WRITE_ANY,
 
     /** Create, read, edit and delete user accounts, including assigning roles. */
-    USER_MANAGE
+    USER_MANAGE,
+
+    /**
+     * Query the audit trail. Held by SUPER_ADMIN alone — the trail records who
+     * did what from which address, so reading it is itself a privileged act.
+     */
+    AUDIT_READ
 }

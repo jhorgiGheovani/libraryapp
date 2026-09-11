@@ -11,6 +11,8 @@ import com.jhorgi.libraryapp.domain.model.User;
 import com.jhorgi.libraryapp.domain.port.in.LoginUseCase;
 import com.jhorgi.libraryapp.domain.port.in.RegisterUseCase;
 import com.jhorgi.libraryapp.domain.port.in.VerifyOtpUseCase;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +21,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * The three unauthenticated endpoints. {@code @SecurityRequirements} with no
+ * value clears the global bearer requirement for this controller — these are
+ * how a caller <em>gets</em> a token, so demanding one would be circular, and
+ * Swagger would show a padlock that cannot be satisfied.
+ *
+ * <p>This mirrors {@code SecurityConfig.PUBLIC_PATHS}. The two lists are
+ * separate declarations of the same fact; if one changes, change the other.
+ */
 @RestController
 @RequestMapping("/auth")
+@Tag(name = "Auth", description = "Registration and two-step login (password, then emailed OTP)")
+@SecurityRequirements
 public class AuthController {
 
     private final RegisterUseCase registerUseCase;

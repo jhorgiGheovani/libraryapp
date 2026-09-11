@@ -14,10 +14,17 @@ public interface ArticleCommandUseCase {
     void delete(Long articleId, Actor requester);
 
 
-    record CreateArticleCommand(String title, String content, Visibility visibility, Actor author) {
+    record CreateArticleCommand(String title, String content, Visibility visibility, Actor author)
+            implements AuditableCommand {
+
+        /** The author of a new article <em>is</em> the caller; slice 4 named the field for the role it plays. */
+        @Override
+        public Actor requester() {
+            return author;
+        }
     }
 
     record UpdateArticleCommand(Long articleId, String title, String content, Visibility visibility,
-                                Actor requester) {
+                                Actor requester) implements AuditableCommand {
     }
 }

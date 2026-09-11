@@ -17,6 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.stream.Collectors;
 
@@ -78,6 +79,18 @@ public class GlobalExceptionHandler {
                 .map(MessageSourceResolvable::getDefaultMessage)
                 .collect(Collectors.joining("; "));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(message));
+    }
+
+    /**
+     * A query parameter that will not convert, e.g. {@code ?action=NONSENSE} or
+     * {@code ?actorId=abc} on the audit log. Without this it surfaces as a 500;
+     * more to the point, an unrecognised filter must not come back as an empty
+     * page, which reads as "nothing ever happened".
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail("Invalid value for parameter '" + ex.getName() + "'"));
     }
 
     /** An unparseable body or a bad enum value, e.g. "visibility": "SECRET". */

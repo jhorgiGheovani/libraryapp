@@ -10,6 +10,7 @@ import com.jhorgi.libraryapp.domain.model.PagedResult;
 import com.jhorgi.libraryapp.domain.port.in.ArticleCommandUseCase;
 import com.jhorgi.libraryapp.domain.port.in.ArticleQueryUseCase;
 import com.jhorgi.libraryapp.security.AuthenticatedUser;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/articles")
+@Tag(name = "Articles", description = "CRUD. Private articles are 404 to anyone who may not see them, never 403")
 public class ArticleController {
     private final ArticleCommandUseCase commands;
     private final ArticleQueryUseCase queries;

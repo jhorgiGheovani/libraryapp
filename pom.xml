@@ -132,6 +132,14 @@
             <artifactId>spring-boot-data-jpa-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- MockMvc. Boot 4 split the test slices out of starter-test, so
+             @AutoConfigureMockMvc and @WebMvcTest need this explicitly, the same
+             way @DataJpaTest needs the artifact above. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
     <build>

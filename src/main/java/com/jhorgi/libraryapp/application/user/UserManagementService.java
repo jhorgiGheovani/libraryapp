@@ -1,9 +1,12 @@
 package com.jhorgi.libraryapp.application.user;
 
 import com.jhorgi.libraryapp.application.policy.UserPolicy;
+import com.jhorgi.libraryapp.audit.Auditable;
 import com.jhorgi.libraryapp.domain.exception.DuplicateUserException;
 import com.jhorgi.libraryapp.domain.exception.UserNotFoundException;
 import com.jhorgi.libraryapp.domain.model.Actor;
+import com.jhorgi.libraryapp.domain.model.AuditAction;
+import com.jhorgi.libraryapp.domain.model.AuditTargetType;
 import com.jhorgi.libraryapp.domain.model.PagedResult;
 import com.jhorgi.libraryapp.domain.model.Role;
 import com.jhorgi.libraryapp.domain.model.User;
@@ -29,6 +32,7 @@ public class UserManagementService implements UserManagementUseCase {
     }
 
     @Override
+    @Auditable(action = AuditAction.USER_CREATE, target = AuditTargetType.USER)
     public User create(CreateUserCommand command) {
         UserPolicy.requireCanManageUsers(command.requester());
 
@@ -41,18 +45,21 @@ public class UserManagementService implements UserManagementUseCase {
     }
 
     @Override
+    @Auditable(action = AuditAction.USER_READ, target = AuditTargetType.USER)
     public User getById(Long userId, Actor requester) {
         UserPolicy.requireCanManageUsers(requester);
         return require(userId);
     }
 
     @Override
+    @Auditable(action = AuditAction.USER_LIST, target = AuditTargetType.USER)
     public PagedResult<User> list(Actor requester, int page, int size) {
         UserPolicy.requireCanManageUsers(requester);
         return users.findAll(page, size);
     }
 
     @Override
+    @Auditable(action = AuditAction.USER_UPDATE, target = AuditTargetType.USER)
     public User updateProfile(UpdateUserCommand command) {
         UserPolicy.requireCanManageUsers(command.requester());
         User existing = require(command.userId());
@@ -72,6 +79,7 @@ public class UserManagementService implements UserManagementUseCase {
     }
 
     @Override
+    @Auditable(action = AuditAction.USER_ROLE_CHANGE, target = AuditTargetType.USER)
     public User changeRole(Long userId, Role newRole, Actor requester) {
         UserPolicy.requireCanManageUsers(requester);
         UserPolicy.requireNotSelf(requester, userId, "change the role of");
@@ -86,6 +94,7 @@ public class UserManagementService implements UserManagementUseCase {
      */
     @Override
     @Transactional
+    @Auditable(action = AuditAction.USER_DELETE, target = AuditTargetType.USER)
     public void delete(Long userId, Actor requester) {
         UserPolicy.requireCanManageUsers(requester);
         UserPolicy.requireNotSelf(requester, userId, "delete");
