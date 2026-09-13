@@ -33,3 +33,9 @@ build/
 .vscode/
 
 docs/
+
+### Secrets ###
+# No .env is needed to run the stack — application.properties carries a working
+# default for every setting. Compose still reads a .env if one is present, so
+# anything put there to override a real secret stays out of git.
+.env

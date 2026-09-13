@@ -29,11 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Account administration, SUPER_ADMIN only. The gate is on the class: every
- * method needs USER_MANAGE, so a new endpoint added here cannot be left open by
- * forgetting the annotation.
- */
+
 @RestController
 @RequestMapping("/users")
 @PreAuthorize("hasAuthority('USER_MANAGE')")

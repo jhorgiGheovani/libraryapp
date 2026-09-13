@@ -21,15 +21,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * The three unauthenticated endpoints. {@code @SecurityRequirements} with no
- * value clears the global bearer requirement for this controller — these are
- * how a caller <em>gets</em> a token, so demanding one would be circular, and
- * Swagger would show a padlock that cannot be satisfied.
- *
- * <p>This mirrors {@code SecurityConfig.PUBLIC_PATHS}. The two lists are
- * separate declarations of the same fact; if one changes, change the other.
- */
 @RestController
 @RequestMapping("/auth")
 @Tag(name = "Auth", description = "Registration and two-step login (password, then emailed OTP)")
